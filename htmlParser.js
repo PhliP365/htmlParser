@@ -116,7 +116,7 @@
           
           var token = reader[type]();
           if(token) {
-            console.log('parsed ' + type);
+            console.log('parsed ' + type, token);
             // Type
             token.type = token.type || type;
             // Entire text
