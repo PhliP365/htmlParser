@@ -7,6 +7,7 @@
   var	endTag = /^<\/([\-A-Za-z0-9_]+)[^>]*>/;
   var attr = /([\-A-Za-z0-9_]+)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
 
+  var DEBUG = false;
   // Special Elements (can contain anything)
   var special = /^(SCRIPT|STYLE)$/i;
 
@@ -99,9 +100,8 @@
       
       chars: function() {
         var index = stream.indexOf("<");
-
 				return {
-				  length: index + 1
+				  length: index >= 0 ? index : stream.length
 				};
       }
     };
@@ -112,11 +112,11 @@
       for (var type in detect) {
         
         if(detect[type].test(stream)) {
-          console.log('suspected ' + type);
+          DEBUG && console.log('suspected ' + type);
           
           var token = reader[type]();
           if(token) {
-            console.log('parsed ' + type, token);
+            DEBUG && console.log('parsed ' + type, token);
             // Type
             token.type = token.type || type;
             // Entire text

@@ -67,7 +67,11 @@
         };
         
         testEcho('<p foo="3"><i></p>');       
+
         testEcho('<p foo="3"><i/></p>');
+
+        testEcho('<p foo="3">foo<i/>bar</p>bla');
+        
         test('A', function() {
           var parser = htmlParser('<p foo="3"><i/></p><b');
           equal(echo(parser), '<p foo="3"><i/></p>');
