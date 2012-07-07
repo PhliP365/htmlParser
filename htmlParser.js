@@ -1,0 +1,153 @@
+// A stateless html parser written in JavaScript
+// Based on http://ejohn.org/blog/pure-javascript-html-parser/
+
+(function() {
+	// Regular Expressions for parsing tags and attributes
+  var startTag = /^<([\-A-Za-z0-9_]+)((?:\s+[\w-]+(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/;
+  var	endTag = /^<\/([\-A-Za-z0-9_]+)[^>]*>/;
+  var attr = /([\-A-Za-z0-9_]+)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
+
+  // Special Elements (can contain anything)
+  var special = /^(SCRIPT|STYLE)$/i;
+
+  function htmlParser(stream) {
+    stream = stream || '';
+    var stack = [];
+        
+    var append = function(str) {
+      stream += str;
+    };
+    
+    // Order of detection matters: detection of one can only 
+    // succeed if detection of previous didn't
+    var detect = {
+      comment: /^<!--/,
+      endTag: /^<\//,
+      atomicTag: /^<\s*(script|style)/i,
+      startTag: /^</,
+      chars: /^[^<]/
+    };
+    
+    // Detection has already happened when a reader is called.    
+    var reader = {
+      
+      comment: function() {
+        var index = stream.indexOf("-->");
+				if ( index >= 0 ) {
+					return {
+					  content: stream.substr(4, index),
+					  length: idx + 3
+					};
+        }				        
+      },
+      
+      endTag: function() {
+        var match = stream.match( endTag );
+
+				if ( match ) {
+				  return {
+				    tagName: match[1],
+				    length: match[0].length				    
+				  };
+				}
+      },
+      
+      atomicTag: function() {
+        var start = reader.startTag();
+        if(start) {
+          var rest = stream.slice(start.length);
+          var match = rest.match("([\\s\\S]*?)<\/" + start.tagName + "[^>]*>");
+          if(match) {
+            // good to go
+            return {
+              tagName: start.tagName,
+              attrs: start.attrs,
+              escapedAttrs: start.escapedAttrs,
+              content: match[1],
+              length: match[0].length + start.length
+            }
+          }
+        }
+      },
+      
+      startTag: function() {
+        var match = stream.match( startTag );
+
+				if ( match ) {
+    			var attrs = {};
+    			var escapedAttrs = {};
+
+    			match[2].replace(attr, function(match, name) {
+    				var value = arguments[2] ? arguments[2] :
+    					arguments[3] ? arguments[3] :
+    					arguments[4] ? arguments[4] : null;
+
+    				attrs[name] = value;
+    				// escape double-quotes for writing html as a string
+    				escapedAttrs[name] = value.replace(/(^|[^\\])"/g, '$1\\\"');
+    			});
+
+				  return {
+				    tagName: match[1],
+				    attrs: attrs,
+				    escapedAttrs: escapedAttrs,
+				    unary: match[3],
+				    length: match[0].length				    
+				  }
+				}				
+      },
+      
+      chars: function() {
+        var index = stream.indexOf("<");
+
+				return {
+				  length: index + 1
+				};
+      }
+    };
+    
+    var readToken = function() {
+
+      // Enumerate detects in order
+      for (var type in detect) {
+        
+        if(detect[type].test(stream)) {
+          console.log('suspected ' + type);
+          
+          var token = reader[type]();
+          if(token) {
+            console.log('parsed ' + type);
+            // Type
+            token.type = token.type || type;
+            // Entire text
+            token.text = stream.substr(0, token.length);
+            // Update the stream
+            stream = stream.slice(token.length);
+
+            return token;            
+          }
+          return null;
+        }
+      }
+    };
+    
+    var pushStream = function() {
+      stack.push(stream)
+      stream = '';
+    };
+    
+    var popStream = function() {
+      stream = stack.pop();
+    };        
+        
+    return {
+      append: append,
+      readToken: readToken,
+      pushStream: pushStream,
+      popStream: popStream
+    };
+    
+  };
+  
+  this.htmlParser = htmlParser;
+})();
