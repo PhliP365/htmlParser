@@ -2,9 +2,9 @@
 // Based on http://ejohn.org/blog/pure-javascript-html-parser/
 
 (function() {
-	// Regular Expressions for parsing tags and attributes
+  // Regular Expressions for parsing tags and attributes
   var startTag = /^<([\-A-Za-z0-9_]+)((?:\s+[\w-]+(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/;
-  var	endTag = /^<\/([\-A-Za-z0-9_]+)[^>]*>/;
+  var endTag = /^<\/([\-A-Za-z0-9_]+)[^>]*>/;
   var attr = /([\-A-Za-z0-9_]+)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
 
   var DEBUG = false;
@@ -34,23 +34,23 @@
       
       comment: function() {
         var index = stream.indexOf("-->");
-				if ( index >= 0 ) {
-					return {
-					  content: stream.substr(4, index),
-					  length: idx + 3
-					};
-        }				        
+        if ( index >= 0 ) {
+          return {
+            content: stream.substr(4, index),
+            length: idx + 3
+          };
+        }               
       },
       
       endTag: function() {
         var match = stream.match( endTag );
 
-				if ( match ) {
-				  return {
-				    tagName: match[1],
-				    length: match[0].length				    
-				  };
-				}
+        if ( match ) {
+          return {
+            tagName: match[1],
+            length: match[0].length           
+          };
+        }
       },
       
       atomicTag: function() {
@@ -74,35 +74,33 @@
       startTag: function() {
         var match = stream.match( startTag );
 
-				if ( match ) {
-    			var attrs = {};
-    			var escapedAttrs = {};
+        if ( match ) {
+          var attrs = {};
+          var escapedAttrs = {};
 
-    			match[2].replace(attr, function(match, name) {
-    				var value = arguments[2] ? arguments[2] :
-    					arguments[3] ? arguments[3] :
-    					arguments[4] ? arguments[4] : null;
+          match[2].replace(attr, function(match, name) {
+            var value = arguments[2] || arguments[3] || arguments[4] || null;
 
-    				attrs[name] = value;
-    				// escape double-quotes for writing html as a string
-    				escapedAttrs[name] = value.replace(/(^|[^\\])"/g, '$1\\\"');
-    			});
+            attrs[name] = value;
+            // escape double-quotes for writing html as a string
+            escapedAttrs[name] = value.replace(/(^|[^\\])"/g, '$1\\\"');
+          });
 
-				  return {
-				    tagName: match[1],
-				    attrs: attrs,
-				    escapedAttrs: escapedAttrs,
-				    unary: match[3],
-				    length: match[0].length				    
-				  }
-				}				
+          return {
+            tagName: match[1],
+            attrs: attrs,
+            escapedAttrs: escapedAttrs,
+            unary: match[3],
+            length: match[0].length           
+          }
+        }       
       },
       
       chars: function() {
         var index = stream.indexOf("<");
-				return {
-				  length: index >= 0 ? index : stream.length
-				};
+        return {
+          length: index >= 0 ? index : stream.length
+        };
       }
     };
     
@@ -131,18 +129,29 @@
       }
     };
     
+    var readTokens = function(handlers) {
+      var tok;
+      while(tok = readToken()) {
+        // continue until we get an explicit "false" return
+        if(handlers[tok.type] && handlers[tok.type](tok) === false) {
+          return;
+        }
+      }
+    };
+    
     var pushStream = function() {
       stack.push(stream)
       stream = '';
     };
     
     var popStream = function() {
-      stream = stack.pop();
+      stream += stack.pop() || '';
     };        
         
     return {
       append: append,
       readToken: readToken,
+      readTokens: readTokens,
       pushStream: pushStream,
       popStream: popStream
     };
