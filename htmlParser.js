@@ -24,7 +24,7 @@
     var detect = {
       comment: /^<!--/,
       endTag: /^<\//,
-      atomicTag: /^<\s*(script|style)/i,
+      atomicTag: /^<\s*(script|style)[\s>]/i,
       startTag: /^</,
       chars: /^[^<]/
     };
