@@ -139,12 +139,12 @@
       }
     };
     
-    var pushStream = function() {
+    var pushState = function() {
       stack.push(stream)
       stream = '';
     };
     
-    var popStream = function() {
+    var popState = function() {
       stream += stack.pop() || '';
     };        
         
@@ -152,8 +152,9 @@
       append: append,
       readToken: readToken,
       readTokens: readTokens,
-      pushStream: pushStream,
-      popStream: popStream
+      pushState: pushState,
+      popState: popState,
+      stack: stack
     };
     
   };
