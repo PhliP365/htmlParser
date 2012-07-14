@@ -140,11 +140,13 @@
     };
     
     var pushState = function() {
+      DEBUG && console.log('pushState');
       stack.push(stream)
       stream = '';
     };
     
     var popState = function() {
+      DEBUG && console.log('popState');
       stream += stack.pop() || '';
     };        
         
