@@ -48,6 +48,10 @@
       stream += str;
     };
 
+    var prepend = function(str) {
+      stream = str + stream;
+    };
+
     // Order of detection matters: detection of one can only
     // succeed if detection of previous didn't
     var detect = {
@@ -237,7 +241,7 @@
           var tok = stack.pop();
 
           // prepend close tag to stream.
-          stream = '</'+tok.tagName+'>' + stream;
+          prepend('</'+tok.tagName+'>');
         };
 
         var handlers = {
@@ -250,7 +254,7 @@
                 if(stack.lastTagNameEq(tagName)) {
                   closeLast();
                 } else {
-                  stream = '</'+tok.tagName+'>' + stream;
+                  prepend('</'+tok.tagName+'>');
                   prepareNextToken();
                 }
             } else if (!tok.unary) {
