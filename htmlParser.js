@@ -1,4 +1,4 @@
-// A stateless html parser written in JavaScript
+// An html parser written in JavaScript
 // Based on http://ejohn.org/blog/pure-javascript-html-parser/
 
 (function() {
