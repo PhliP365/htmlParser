@@ -2,6 +2,24 @@
 // Based on http://ejohn.org/blog/pure-javascript-html-parser/
 
 (function() {
+  var supports = (function() {
+    var supports = {};
+
+    var html, expected;
+    var work = document.createElement('div');
+
+    html = "<P><I></P></I>";
+    work.innerHTML = html;
+    supports.tagSoup = work.innerHTML !== html;
+
+    work.innerHTML = "<P><i><P></P></i></P>";
+    supports.selfClose = work.childNodes.length === 2;
+
+    return supports;
+  })();
+
+
+
   // Regular Expressions for parsing tags and attributes
   var startTag = /^<([\-A-Za-z0-9_]+)((?:\s+[\w-]+(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/;
   var endTag = /^<\/([\-A-Za-z0-9_]+)[^>]*>/;
@@ -11,15 +29,26 @@
   // Special Elements (can contain anything)
   var special = /^(SCRIPT|STYLE)$/i;
 
-  function htmlParser(stream) {
+  function htmlParser(stream, options) {
     stream = stream || '';
+
+    // Options
+    options = options || {};
+
+    for(var key in supports) {
+      if(options.autoFix) {
+        options['fix_'+key] = !supports[key];
+      }
+      options.fix = options.fix || options['fix_'+key];
+    }
+
     var stack = [];
-        
+
     var append = function(str) {
       stream += str;
     };
-    
-    // Order of detection matters: detection of one can only 
+
+    // Order of detection matters: detection of one can only
     // succeed if detection of previous didn't
     var detect = {
       comment: /^<!--/,
@@ -28,10 +57,10 @@
       startTag: /^</,
       chars: /^[^<]/
     };
-    
-    // Detection has already happened when a reader is called.    
+
+    // Detection has already happened when a reader is called.
     var reader = {
-      
+
       comment: function() {
         var index = stream.indexOf("-->");
         if ( index >= 0 ) {
@@ -39,20 +68,20 @@
             content: stream.substr(4, index),
             length: idx + 3
           };
-        }               
+        }
       },
-      
+
       endTag: function() {
         var match = stream.match( endTag );
 
         if ( match ) {
           return {
             tagName: match[1],
-            length: match[0].length           
+            length: match[0].length
           };
         }
       },
-      
+
       atomicTag: function() {
         var start = reader.startTag();
         if(start) {
@@ -70,7 +99,7 @@
           }
         }
       },
-      
+
       startTag: function() {
         var match = stream.match( startTag );
 
@@ -91,11 +120,11 @@
             attrs: attrs,
             escapedAttrs: escapedAttrs,
             unary: match[3],
-            length: match[0].length           
+            length: match[0].length
           }
-        }       
+        }
       },
-      
+
       chars: function() {
         var index = stream.indexOf("<");
         return {
@@ -103,15 +132,15 @@
         };
       }
     };
-    
+
     var readToken = function() {
 
       // Enumerate detects in order
       for (var type in detect) {
-        
+
         if(detect[type].test(stream)) {
           DEBUG && console.log('suspected ' + type);
-          
+
           var token = reader[type]();
           if(token) {
             DEBUG && console.log('parsed ' + type, token);
@@ -122,13 +151,13 @@
             // Update the stream
             stream = stream.slice(token.length);
 
-            return token;            
+            return token;
           }
           return null;
         }
       }
     };
-    
+
     var readTokens = function(handlers) {
       var tok;
       while(tok = readToken()) {
@@ -138,18 +167,135 @@
         }
       }
     };
-    
+
     var pushState = function() {
       DEBUG && console.log('pushState');
       stack.push(stream)
       stream = '';
     };
-    
+
     var popState = function() {
       DEBUG && console.log('popState');
       stream += stack.pop() || '';
-    };        
-        
+    };
+
+    if(options.fix) {
+      (function() {
+        // Empty Elements - HTML 4.01
+        var EMPTY = /^(AREA|BASE|BASEFONT|BR|COL|FRAME|HR|IMG|INPUT|ISINDEX|LINK|META|PARAM|EMBED)$/i;
+
+      	// Block Elements - HTML 4.01
+      	var BLOCK = /^(ADDRESS|APPLET|BLOCKQUOTE|BUTTON|CENTER|DD|DEL|DIR|DIV|DL|DT|FIELDSET|FORM|FRAMESET|HR|IFRAME|INS|ISINDEX|LI|MAP|MENU|NOFRAMES|NOSCRIPT|OBJECT|OL|P|PRE|SCRIPT|TABLE|TBODY|TD|TFOOT|TH|THEAD|TR|UL)$/i;
+
+      	// Inline Elements - HTML 4.01
+      	var INLINE = /^(A|ABBR|ACRONYM|APPLET|B|BASEFONT|BDO|BIG|BR|BUTTON|CITE|CODE|DEL|DFN|EM|FONT|I|IFRAME|IMG|INPUT|INS|KBD|LABEL|MAP|OBJECT|Q|S|SAMP|SCRIPT|SELECT|SMALL|SPAN|STRIKE|STRONG|SUB|SUP|TEXTAREA|TT|U|VAR)$/i;
+
+      	// Elements that you can| intentionally| leave open
+      	// (and which close themselves)
+      	var CLOSESELF = /^(COLGROUP|DD|DT|LI|OPTIONS|P|TD|TFOOT|TH|THEAD|TR)$/i;
+
+
+        var stack = [];
+        stack.last = function() {
+          return this[this.length - 1];
+        };
+        stack.lastTagNameEq = function(tagName) {
+          var last = this.last();
+          return last && last.tagName &&
+            last.tagName.toUpperCase() === tagName.toUpperCase();
+        };
+        stack.containsTagName = function(tagName) {
+          for(var i = 0, tok; tok = this[i]; i++) {
+            if(tok.tagName === tagName) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        var correct = function(tok) {
+          if(tok && tok.type === 'startTag') {
+            // unary
+            if(EMPTY.test(tok.tagName) && !tok.unary) {
+              tok.unary = true;
+              tok.text = tok.text.replace(/([^\/])>$/, '$1\/>');
+            }
+          }
+          return tok;
+        };
+
+        var readTokenImpl = readToken;
+
+        var peekToken = function() {
+          var tmp = stream;
+          var tok = correct(readTokenImpl());
+          stream = tmp;
+          return tok;
+        };
+
+        var closeLast = function() {
+          var tok = stack.pop();
+
+          // prepend close tag to stream.
+          stream = '</'+tok.tagName+'>' + stream;
+        };
+
+        var handlers = {
+          startTag: function(tok) {
+            var tagName = tok.tagName;
+
+            if(options.fix_selfClose &&
+              CLOSESELF.test(tagName) &&
+              stack.containsTagName(tagName)) {
+                if(stack.lastTagNameEq(tagName)) {
+                  closeLast();
+                } else {
+                  stream = '</'+tok.tagName+'>' + stream;
+                  prepareNextToken();
+                }
+            } else if (!tok.unary) {
+              stack.push(tok);
+            }
+          },
+
+          endTag: function(tok) {
+            var last = stack.last();
+            if(last) {
+              if(options.fix_tagSoup && !stack.lastTagNameEq(tok.tagName)) {
+                // cleanup tag soup
+                closeLast();
+              } else {
+                stack.pop();
+              }
+            } else if (options.fix_tagSoup) {
+              // cleanup tag soup part 2: skip this token
+              skipToken();
+            }
+          }
+        };
+
+        var skipToken = function() {
+          // shift the next token
+          readTokenImpl();
+
+          prepareNextToken();
+        };
+
+        var prepareNextToken = function() {
+          var tok = peekToken();
+          if(tok && handlers[tok.type]) {
+            handlers[tok.type](tok);
+          }
+        };
+
+        // redefine readToken
+        readToken = function() {
+          prepareNextToken();
+          return correct(readTokenImpl());
+        };
+      })();
+    }
+
     return {
       append: append,
       readToken: readToken,
@@ -158,8 +304,14 @@
       popState: popState,
       stack: stack
     };
-    
+
   };
-  
+
+  htmlParser.supports = supports;
+
+  for(var key in supports) {
+    htmlParser.browserHasFlaw = htmlParser.browserHasFlaw || (!supports[key]) && key;
+  }
+
   this.htmlParser = htmlParser;
 })();
