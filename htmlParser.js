@@ -24,10 +24,9 @@
   var startTag = /^<([\-A-Za-z0-9_]+)((?:\s+[\w-]+(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/;
   var endTag = /^<\/([\-A-Za-z0-9_]+)[^>]*>/;
   var attr = /([\-A-Za-z0-9_]+)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|([^>\s]+)))?/g;
+  var fillAttr = /^(checked|compact|declare|defer|disabled|ismap|multiple|nohref|noresize|noshade|nowrap|readonly|selected)$/i;
 
   var DEBUG = false;
-  // Special Elements (can contain anything)
-  var special = /^(SCRIPT|STYLE)$/i;
 
   function htmlParser(stream, options) {
     stream = stream || '';
@@ -37,7 +36,7 @@
 
     for(var key in supports) {
       if(options.autoFix) {
-        options['fix_'+key] = !supports[key];
+        options['fix_'+key] = true;//!supports[key];
       }
       options.fix = options.fix || options['fix_'+key];
     }
@@ -57,7 +56,7 @@
     var detect = {
       comment: /^<!--/,
       endTag: /^<\//,
-      atomicTag: /^<\s*(script|style)[\s>]/i,
+      atomicTag: /^<\s*(script|style|noscript)[\s>]/i,
       startTag: /^</,
       chars: /^[^<]/
     };
@@ -112,11 +111,12 @@
           var escapedAttrs = {};
 
           match[2].replace(attr, function(match, name) {
-            var value = arguments[2] || arguments[3] || arguments[4] || null;
+            var value = arguments[2] || arguments[3] || arguments[4] ||
+              fillAttr.test(name) && name || null;
 
             attrs[name] = value;
             // escape double-quotes for writing html as a string
-            escapedAttrs[name] = value.replace(/(^|[^\\])"/g, '$1\\\"');
+            escapedAttrs[name] = value && value.replace(/(^|[^\\])"/g, '$1\\\"');
           });
 
           return {
@@ -172,15 +172,10 @@
       }
     };
 
-    var pushState = function() {
-      DEBUG && console.log('pushState');
-      stack.push(stream)
+    var clear = function() {
+      var ret = stream;
       stream = '';
-    };
-
-    var popState = function() {
-      DEBUG && console.log('popState');
-      stream += stack.pop() || '';
+      return ret;
     };
 
     if(options.fix) {
@@ -220,10 +215,7 @@
         var correct = function(tok) {
           if(tok && tok.type === 'startTag') {
             // unary
-            if(EMPTY.test(tok.tagName) && !tok.unary) {
-              tok.unary = true;
-              tok.text = tok.text.replace(/([^\/])>$/, '$1\/>');
-            }
+            tok.unary = EMPTY.test(tok.tagName) || tok.unary;
           }
           return tok;
         };
@@ -304,8 +296,7 @@
       append: append,
       readToken: readToken,
       readTokens: readTokens,
-      pushState: pushState,
-      popState: popState,
+      clear: clear,
       stack: stack
     };
 
