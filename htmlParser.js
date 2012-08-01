@@ -69,7 +69,7 @@
         if ( index >= 0 ) {
           return {
             content: stream.substr(4, index),
-            length: idx + 3
+            length: index + 3
           };
         }
       },
