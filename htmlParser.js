@@ -173,9 +173,11 @@
     };
 
     var clear = function() {
-      var ret = stream;
       stream = '';
-      return ret;
+    };
+
+    var rest = function() {
+      return stream;
     };
 
     if(options.fix) {
@@ -297,6 +299,7 @@
       readToken: readToken,
       readTokens: readTokens,
       clear: clear,
+      rest: rest,
       stack: stack
     };
 
