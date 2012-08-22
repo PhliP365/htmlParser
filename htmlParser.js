@@ -205,6 +205,7 @@
           return last && last.tagName &&
             last.tagName.toUpperCase() === tagName.toUpperCase();
         };
+
         stack.containsTagName = function(tagName) {
           for(var i = 0, tok; tok = this[i]; i++) {
             if(tok.tagName === tagName) {
@@ -241,8 +242,11 @@
         var handlers = {
           startTag: function(tok) {
             var tagName = tok.tagName;
-
-            if(options.fix_selfClose &&
+            // Fix tbody
+            if(tagName.toUpperCase() === 'TR' && stack.lastTagNameEq('TABLE')) {
+              prepend('<TBODY>');
+              prepareNextToken();
+            } else if(options.fix_selfClose &&
               CLOSESELF.test(tagName) &&
               stack.containsTagName(tagName)) {
                 if(stack.lastTagNameEq(tagName)) {
