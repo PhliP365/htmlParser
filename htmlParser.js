@@ -311,6 +311,36 @@
 
   htmlParser.supports = supports;
 
+  htmlParser.tokenToString = function(tok) {
+    var handler = {
+      comment: function(tok) {
+        return '<--' + tok.content + '-->';
+      },
+      endTag: function(tok) {
+        return '</'+tok.tagName+'>';
+      },
+      atomicTag: function(tok) {
+        console.log(tok);
+        return handler.startTag(tok) +
+              tok.content +
+              handler.endTag(tok);
+      },
+      startTag: function(tok) {
+        var str = '<'+tok.tagName;
+        for (var key in tok.attrs) {
+          var val = tok.attrs[key];
+          // escape quotes
+          str += ' '+key+'="'+(val ? val.replace(/(^|[^\\])"/g, '$1\\\"') : '')+'"';
+        }
+        return str + (tok.unary ? '/>' : '>');
+      },
+      chars: function(tok) {
+        return tok.text;
+      }
+    };
+    return handler[tok.type](tok);
+  };
+
   for(var key in supports) {
     htmlParser.browserHasFlaw = htmlParser.browserHasFlaw || (!supports[key]) && key;
   }
