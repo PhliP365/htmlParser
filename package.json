@@ -1,0 +1,54 @@
+{
+    "name": "htmlParser",
+    "description": "A stateless HTML Parser in Javascript",
+    "version": "1.0.0",
+    "keywords": [
+        "html parser"
+    ],
+    "author": { "name" : "Derek Brans" },
+    "contributors": [
+        {
+            "name": "Derek Brans",
+            "email": "dbrans@gmail.com"
+        },
+        {
+            "name": "Nick Sullivan",
+            "email": "nick@sullivanflock.com",
+            "web": "http://creationeer.me"
+        }
+    ],
+    "maintainers": [
+        {
+            "name": "Derek Brans",
+            "email": "dbrans@gmail.com"
+        },
+        {
+            "name": "Nick Sullivan",
+            "email": "nick@sullivanflock.com",
+            "web": "http://creationeer.me"
+        }
+    ],
+    "bugs": "https://github.com/krux/htmlParser/issues",
+    "licenses": [
+        {
+            "type": "MIT",
+            "url": "https://github.com/krux/htmlParser/blob/master/LICENSE"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "git",
+            "url": "git@github.com:krux/htmlParser.git"
+        }
+    ],
+    "dependencies": {},
+    "devDependencies": {
+        "grunt": "~0.3.16"
+    },
+    "homepage": "https://github.com/krux/htmlParser",
+    "os": [],
+    "cpu": [],
+    "engines": {
+        "node": ">=0.8"
+    }
+}
