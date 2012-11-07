@@ -98,7 +98,7 @@
               escapedAttrs: start.escapedAttrs,
               content: match[1],
               length: match[0].length + start.length
-            }
+            };
           }
         }
       },
@@ -125,7 +125,7 @@
             escapedAttrs: escapedAttrs,
             unary: match[3],
             length: match[0].length
-          }
+          };
         }
       },
 
@@ -303,7 +303,7 @@
       stack: stack
     };
 
-  };
+  }
 
   htmlParser.supports = supports;
 
